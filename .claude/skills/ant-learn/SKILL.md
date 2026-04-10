@@ -1,7 +1,7 @@
 ---
 name: ant-learn
 description: Anthropic公式サイト(https://www.anthropic.com/)およびClaude Code公式ドキュメント(https://code.claude.com/docs/ja)の最新情報を学習するスキル。トピックの背景・詳細・お客様説明ポイントを含む学習コンテンツを生成する。実行するたびに新しいトピックを1つ提示し、学習済みのものは重複しない。`/ant-learn` で新規学習、`/ant-learn --list` で履歴一覧、`/ant-learn --review {id}` で復習、`/ant-learn --reset` で履歴リセット。
-argument-hint: [--list] [--review <id>] [--reset]
+argument-hint: [--topic <keyword>] [--list] [--review <id>] [--reset]
 ---
 
 ## あなたのタスク
@@ -29,6 +29,9 @@ Anthropic公式サイトおよびClaude Code公式ドキュメントから最新
 ### `--review {id}` の場合
 1. `~/.claude/ant-learn/contents/{id}.md` を読み込んで表示する
 2. ファイルが存在しない場合は「指定されたトピックが見つかりません。`/ant-learn --list` で利用可能なIDを確認してください」と表示
+
+### `--topic {keyword}` の場合
+特定のトピックを指定して学習する。以下の「トピック指定学習フロー」に従う。
 
 ### 引数なしの場合（新規学習）
 以下の「新規学習フロー」に従う
@@ -129,6 +132,36 @@ SAがお客様に説明する際に役立つ実践的な内容にすること。
 復習するには: /ant-learn --review {id}
 学習履歴の確認: /ant-learn --list
 ```
+
+## トピック指定学習フロー
+
+`--topic {keyword}` が指定された場合のフロー。話題のトピックなど、学びたいテーマを直接指定して学習する。
+
+### Step 1: 履歴読み込み
+
+`~/.claude/ant-learn/history.json` をReadツールで読み込む。ファイルが存在しない場合は `{"topics": []}` として扱う。
+
+### Step 2: トピックの検索
+
+WebFetchツールで以下の4ページを取得し、キーワードに関連する記事・ドキュメントを検索する:
+
+1. `https://www.anthropic.com/news` — prompt: 「このページに掲載されている記事の中から、「{keyword}」に関連するものを全て抽出してください。各記事のタイトル、URL（hrefの値）、日付を返してください。」
+
+2. `https://www.anthropic.com/research` — prompt: 「このページに掲載されている記事の中から、「{keyword}」に関連するものを全て抽出してください。各記事のタイトル、URL（hrefの値）、日付を返してください。」
+
+3. `https://www.anthropic.com/engineering` — prompt: 「このページに掲載されている記事の中から、「{keyword}」に関連するものを全て抽出してください。各記事のタイトル、URL（hrefの値）、日付を返してください。」
+
+4. `https://code.claude.com/docs/ja` — prompt: 「このページのナビゲーションに掲載されているドキュメントの中から、「{keyword}」に関連するものを全て抽出してください。各ドキュメントのタイトルとURL（hrefの値）を返してください。アンカーリンク（#付き）は除外してください。」
+
+### Step 3: トピックの選択
+
+1. 検索結果からキーワードに最も関連性の高い記事を1件選択する
+2. 既に履歴にある場合は「このトピックは学習済みです。`/ant-learn --review {id}` で復習できます」と表示し、それでも新たに学習するか確認する
+3. 関連する記事が見つからない場合は「指定されたキーワードに関連するトピックが見つかりませんでした。別のキーワードを試してください」と表示して終了
+
+### Step 4以降
+
+新規学習フローのStep 4（トピック詳細の取得）以降と同じ手順で、コンテンツ生成・保存を行う。
 
 ## フォールバックトピックリスト
 
